@@ -5,11 +5,24 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/luka2220/tools/rate-limiter/pkg/tokenbucket"
 )
 
 var (
 	logger = log.New(os.Stdout, "[SERVER]: ", log.LstdFlags)
 )
+
+
+type IpAddressStore struct {
+	ipAddress map[string]tokenbucket.Bucket
+}
+
+func newIpAddressStore() *IpAddressStore {
+	return &IpAddressStore{
+		make(map[string]tokenbucket.Bucket),
+	}
+}
 
 func unlimitedRoute(w http.ResponseWriter, req *http.Request) {
 	clientHost := req.RemoteAddr
@@ -18,8 +31,8 @@ func unlimitedRoute(w http.ResponseWriter, req *http.Request) {
 }
 
 func limitedRoute(w http.ResponseWriter, req *http.Request) {
-	clientHost := req.RemoteAddr
-	logger.Printf("limited route requested by %s\n", clientHost)
+	ip := req.RemoteAddr
+	logger.Printf("limited route requested by %s\n", ip)
 	io.WriteString(w, "limited request route...")
 }
 
