@@ -1,3 +1,3 @@
-![code coverage badge](https://github.com/luka2220/rate-limiter/actions/workflows/ci.yaml/badge.svg)
+[![ci](https://github.com/luka2220/rate-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/luka2220/rate-limiter/actions/workflows/ci.yml)
 
 ## Description
