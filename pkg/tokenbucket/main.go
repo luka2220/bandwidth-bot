@@ -1,5 +1,7 @@
 package tokenbucket
 
+// TODO: Need to find a way to create the in-memory store abstracted way from user
+
 type Bucket struct {
 	capacity int // Maximum size of tokens
 	size     int // Current size of of bucket
