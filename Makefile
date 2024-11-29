@@ -14,15 +14,7 @@ vet:
 tidy: fmt
 	go mod tidy
 
-# Build the executable binary for the application
-build:
-	@go build -o bin/
+# Run the serevr for testing
+run:
+	go run ./cmd
 
-# Run the root command 
-run: build
-	@./bin/rate-limiter
-
-# Clean project files and remove current binary in ./bin
-clean:
-	go clean
-	rm ./bin/rate-limiter
