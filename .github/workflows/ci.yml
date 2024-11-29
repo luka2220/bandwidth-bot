@@ -24,4 +24,4 @@ jobs:
         run: go version
       
       - name: Run go fmt 
-        run: go fmt
+        run: go fmt ./...
