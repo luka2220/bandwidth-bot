@@ -1,22 +1,30 @@
 package tokenbucket
 
 type Bucket struct {
-	capacity int	// Maximum size of tokens 
-	id string 		// ID of the bucket
-	size int		// Current size of iof bucket
-	fillRate int	// amount of tokens to add to the bucket per second
+	capacity int // Maximum size of tokens
+	size     int // Current size of of bucket
+	fillRate int // amount of tokens to add to the bucket per second
 }
 
-func newBucket(id string) *Bucket {
+func NewBucket() *Bucket {
 	return &Bucket{
 		capacity: 10,
-		id: id,
-		size: 0,
+		size:     0,
 		fillRate: 1,
 	}
 }
 
+// Gets the current token size of the bucket
+func (b *Bucket) GetBucketSize() int {
+	return b.size
+}
+
 // Consistently adds a token to the bucket at a rate of Bucket.fillRate
 func (b *Bucket) addToken() {
+
+}
+
+// Removes a token from the bucket
+func (b *Bucket) RemoveToken() {
 
 }
