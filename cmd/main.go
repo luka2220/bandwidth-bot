@@ -43,15 +43,24 @@ func limitedRoute(w http.ResponseWriter, req *http.Request) {
 
 	bucket := tokenbucket.GetIpAdderBucket(ip)
 	type response struct {
-		Message    string `json:"message"`
-		Ip         string `json:"ip"`
-		BucketSize int    `json:"tokenBucketSize"`
+		Message string `json:"message"`
+		Ip      string `json:"ip"`
 	}
 
-	respUnserialized := &response{
-		Message:    "Limited route requested from server...",
-		Ip:         bucket.IpAdder,
-		BucketSize: bucket.GetBucketSize(),
+	var respUnserialized *response
+
+	switch bucket.GetHTTPStatus() {
+	case 429:
+		respUnserialized = &response{
+			Message: "The client has sent too many requests in a given amount of time",
+			Ip:      ip,
+		}
+
+	case 200:
+		respUnserialized = &response{
+			Message: "Limited route requested from server...",
+			Ip:      ip,
+		}
 	}
 
 	respSerialized, err := json.Marshal(respUnserialized)
