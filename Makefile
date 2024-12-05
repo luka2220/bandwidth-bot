@@ -18,3 +18,7 @@ tidy: fmt
 run:
 	go run ./cmd
 
+# Run all of the unit tests
+test:
+	$(info Running all of the application unit tests)
+	@go test ./...
