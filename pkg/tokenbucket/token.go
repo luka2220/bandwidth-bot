@@ -7,12 +7,12 @@ import (
 
 // TODO: Need to find a way to create the in-memory store abstracted way from user
 var (
-	ipAdderStore map[string]Bucket
+	ipAdderStore = make(map[string]Bucket)
 	logger       = log.New(os.Stdout, "[SERVER-TOKEN]: ", log.LstdFlags)
 )
 
 type Bucket struct {
-	ipAdder  string // Ip adderess of the current bucket
+	IpAdder  string // Ip adderess of the current bucket
 	capacity int    // Maximum size of tokens
 	size     int    // Current size of of bucket
 	fillRate int    // amount of tokens to add to the bucket per second
@@ -22,18 +22,18 @@ func GetBucket(ip string) *Bucket {
 
 	b, ok := ipAdderStore[ip]
 	if ok {
-		logger.Println("ip address in memory")
+		logger.Printf("ip address in memory (%s)\n", b.IpAdder)
 		return &b
 	}
 
 	newBucket := &Bucket{
-		ipAdder:  ip,
+		IpAdder:  ip,
 		capacity: 10,
 		size:     0,
 		fillRate: 1,
 	}
 	ipAdderStore[ip] = *newBucket
-	logger.Println("ip adddress created in memory")
+	logger.Printf("ip adddress created in memory (%s)\n", newBucket.IpAdder)
 
 	return newBucket
 }
@@ -49,6 +49,6 @@ func (b *Bucket) addToken() {
 }
 
 // Removes a token from the bucket
-func (b *Bucket) RemoveToken() {
+func (b *Bucket) removeToken() {
 
 }
