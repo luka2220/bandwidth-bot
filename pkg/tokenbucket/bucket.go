@@ -2,6 +2,7 @@ package tokenbucket
 
 import (
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -12,16 +13,18 @@ var (
 )
 
 type Bucket struct {
-	IpAdder  string // Ip adderess of the current bucket
-	capacity int    // Maximum size of tokens
-	size     int    // Current size of of bucket
-	fillRate int    // amount of tokens to add to the bucket per second
+	IpAdder    string // Ip adderess of the current bucket
+	capacity   int    // Maximum size of tokens
+	size       int    // Current size of of bucket
+	fillRate   int    // amount of tokens to add to the bucket per second
+	httpStatus int    // HTTP status of the bucket
 }
 
-func GetBucket(ip string) *Bucket {
-
+// Gets the buck associasted with the IP address, if none exists in the map a new but is created and stored
+func GetIpAdderBucket(ip string) *Bucket {
 	b, ok := ipAdderStore[ip]
 	if ok {
+		// TODO: Since the ip exists, add logic for removing a token from the bucket
 		logger.Printf("ip address in memory (%s)\n", b.IpAdder)
 		return &b
 	}
@@ -36,6 +39,11 @@ func GetBucket(ip string) *Bucket {
 	logger.Printf("ip adddress created in memory (%s)\n", newBucket.IpAdder)
 
 	return newBucket
+}
+
+// Get the http status code of the current bucket
+func (b *Bucket) GetHTTPStatus() int {
+	return http.StatusOK
 }
 
 // Gets the current token size of the bucket
