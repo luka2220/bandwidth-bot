@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,48 +15,43 @@ var (
 	logger = log.New(os.Stdout, "[SERVER]: ", log.LstdFlags)
 )
 
-type IpAddressStore struct {
-	ipAddress map[string]tokenbucket.Bucket
-}
-
-func newIpAddressStore() *IpAddressStore {
-	return &IpAddressStore{
-		make(map[string]tokenbucket.Bucket),
-	}
-}
-
-func (ips *IpAddressStore) getBucket(ip string) tokenbucket.Bucket {
-	bucket, ok := ips.ipAddress[ip]
-	if ok {
-		// TODO: since the ip already exists, call token remove from tokenBucket
-		return bucket
-	} else {
-		// TODO: since a new ip address is added store the ip and it's new bucket to the map store
-		ips.ipAddress[ip] = *tokenbucket.NewBucket()
-		return ips.ipAddress[ip]
-	}
-}
-
-func (ips *IpAddressStore) unlimitedRoute(w http.ResponseWriter, req *http.Request) {
+func unlimitedRoute(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 	logger.Printf("unlimted route requested by %s\n", ip)
 	io.WriteString(w, "unlimited request route...")
 }
 
-func (ips *IpAddressStore) limitedRoute(w http.ResponseWriter, req *http.Request) {
+func limitedRoute(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
-	bucket := ips.getBucket(ip)
 
-	logger.Printf("limited route requested by %s\n", ip)
-	logger.Printf("current ip bucket has %d tokens", bucket.GetBucketSize())
-	io.WriteString(w, "limited request route...")
+	// Get the token bucket for the current IP
+	bucket := tokenbucket.GetBucket(ip)
+	type response struct {
+		Message    string `json:"message"`
+		Ip         string `json:"ip"`
+		BucketSize int    `json:"tokenBucketSize"`
+	}
+	respUnserialized := &response{
+		Message:    "Limited route requested from server...",
+		Ip:         bucket.IpAdder,
+		BucketSize: bucket.GetBucketSize(),
+	}
+	respSerialized, err := json.Marshal(respUnserialized)
+	if err != nil {
+		panic(fmt.Sprintf("Error serializing response struct: %v\n", err))
+	}
+
+	// logger.Printf("limited route requested by %s\n", ip)
+	// io.WriteString(w, "limited route request ...\n")
+	_, err = w.Write(respSerialized)
+	if err != nil {
+		panic(fmt.Sprintf("Error writting serialized struct to response writer: %v\n", err))
+	}
 }
 
 func main() {
-	ipStorage := newIpAddressStore()
-
-	unlim := ipStorage.unlimitedRoute
-	lim := ipStorage.limitedRoute
+	unlim := unlimitedRoute
+	lim := limitedRoute
 
 	http.HandleFunc("/unlimited", unlim)
 	http.HandleFunc("/limited", lim)
