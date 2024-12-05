@@ -22,3 +22,8 @@ run:
 test:
 	$(info Running all of the application unit tests)
 	@go test ./...
+
+# Build the application binary
+build:
+	$(info Building the application binary into bin/)
+	@go build -o bin/ ./cmd/main.go
