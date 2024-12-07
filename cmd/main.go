@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/luka2220/tools/rate-limiter/pkg/tokenbucket"
+	"github.com/luka2220/tools/rate-limiter/pkg/token-bucket"
 )
 
 var (
