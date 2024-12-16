@@ -7,14 +7,29 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/luka2220/tools/rate-limiter/pkg/token-bucket"
+	"github.com/luka2220/tools/rate-limiter/pkg"
 )
 
 var (
 	logger = log.New(os.Stdout, "[SERVER]: ", log.LstdFlags)
 )
 
-func unlimitedRoute(w http.ResponseWriter, req *http.Request) {
+const (
+	TOKEN_BUCKET         = "token-bucket"
+	FIXED_WINDOW_COUNTER = "fixed-window-counter"
+)
+
+type rateLimiter struct {
+	name string
+}
+
+func newRateLimiter(name string) *rateLimiter {
+	return &rateLimiter{
+		name,
+	}
+}
+
+func (r rateLimiter) unlimited(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 	logger.Printf("unlimted route requested by %s\n", ip)
 
@@ -38,13 +53,17 @@ func unlimitedRoute(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func limitedRoute(w http.ResponseWriter, req *http.Request) {
+func (r rateLimiter) limited(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 
-	bucket := tokenbucket.GetIpAdderBucket(ip)
 	type response struct {
 		Message string `json:"message"`
 		Ip      string `json:"ip"`
+	}
+
+	switch r.name {
+	case TOKEN_BUCKET:
+		bucket := tokenbucket.GetIpAdderBucket(ip)
 	}
 
 	var respUnserialized *response
@@ -78,8 +97,10 @@ func limitedRoute(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	unlim := unlimitedRoute
-	lim := limitedRoute
+	rl := newRateLimiter(TOKEN_BUCKET)
+
+	unlim := rl.unlimited
+	lim := rl.limited
 
 	http.HandleFunc("/unlimited", unlim)
 	http.HandleFunc("/limited", lim)
