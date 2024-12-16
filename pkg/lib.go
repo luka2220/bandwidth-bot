@@ -1,4 +1,4 @@
-package tokenbucket
+package pkg
 
 import (
 	"log"
@@ -85,4 +85,14 @@ func (b *Bucket) fillBucket() {
 // Get the http status code of the current bucket
 func (b *Bucket) GetHTTPStatus() int {
 	return b.httpStatus
+}
+
+type FixedWindow struct {
+	threshold float64   // Limit where if exceded the requests will be discarded
+	counter   float64   // Amount to increase window time per incoming request
+	window    time.Time // Current time of window
+}
+
+func UseFixedWindow() *FixedWindow {
+	return &FixedWindow{}
 }
