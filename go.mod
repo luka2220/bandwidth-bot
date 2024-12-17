@@ -1,3 +1,3 @@
-module github.com/luka2220/tools/rate-limiter
+module github.com/luka2220/bandwidthbot
 
 go 1.23.1

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/luka2220/tools/rate-limiter/pkg"
+	"github.com/luka2220/bandwidthbot"
 )
 
 var (
@@ -18,6 +18,11 @@ const (
 	TOKEN_BUCKET         = "token-bucket"
 	FIXED_WINDOW_COUNTER = "fixed-window-counter"
 )
+
+type response struct {
+	Message string `json:"message"`
+	Ip      string `json:"ip"`
+}
 
 type rateLimiter struct {
 	name string
@@ -32,11 +37,6 @@ func newRateLimiter(name string) *rateLimiter {
 func (r rateLimiter) unlimited(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 	logger.Printf("unlimted route requested by %s\n", ip)
-
-	type response struct {
-		Message string `json:"message"`
-		Ip      string `json:"ip"`
-	}
 
 	respSerialized, err := json.Marshal(&response{
 		Message: "Unlimited route requested from the server...",
@@ -56,19 +56,20 @@ func (r rateLimiter) unlimited(w http.ResponseWriter, req *http.Request) {
 func (r rateLimiter) limited(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 
-	type response struct {
-		Message string `json:"message"`
-		Ip      string `json:"ip"`
-	}
+	var serverResponseCode = 200
 
 	switch r.name {
 	case TOKEN_BUCKET:
-		bucket := tokenbucket.GetIpAdderBucket(ip)
+		bucket := bandwidthbot.InitializeTokenBucket(ip)
+		serverResponseCode = bucket.GetHTTPStatus()
+	case FIXED_WINDOW_COUNTER:
+		fwc := bandwidthbot.InitializeFixedWindow(ip)
+		serverResponseCode = fwc.GetHTTPStatus()
 	}
 
 	var respUnserialized *response
 
-	switch bucket.GetHTTPStatus() {
+	switch serverResponseCode {
 	case 429:
 		respUnserialized = &response{
 			Message: "The client has sent too many requests in a given amount of time",
@@ -89,7 +90,7 @@ func (r rateLimiter) limited(w http.ResponseWriter, req *http.Request) {
 
 	logger.Printf("limited route requested by %s\n", ip)
 
-	w.WriteHeader(bucket.GetHTTPStatus())
+	w.WriteHeader(serverResponseCode)
 	_, err = w.Write(respSerialized)
 	if err != nil {
 		panic(fmt.Sprintf("Error writting serialized struct to response writer: %v\n", err))
@@ -97,7 +98,7 @@ func (r rateLimiter) limited(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	rl := newRateLimiter(TOKEN_BUCKET)
+	rl := newRateLimiter(FIXED_WINDOW_COUNTER)
 
 	unlim := rl.unlimited
 	lim := rl.limited

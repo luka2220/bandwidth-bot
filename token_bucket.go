@@ -1,4 +1,4 @@
-package pkg
+package bandwidthbot
 
 import (
 	"log"
@@ -9,7 +9,7 @@ import (
 
 var (
 	ipAdderStore = make(map[string]*Bucket)
-	logger       = log.New(os.Stdout, "[SERVER-TOKEN]: ", log.LstdFlags)
+	loggerTB     = log.New(os.Stdout, "[SERVER-TOKEN]: ", log.LstdFlags)
 )
 
 type Bucket struct {
@@ -21,19 +21,18 @@ type Bucket struct {
 	httpStatus  int    // HTTP status of the bucket
 }
 
-// Gets the buck associasted with the IP address, if none exists in the map a new but is created and stored
-func GetIpAdderBucket(ip string) *Bucket {
+func InitializeTokenBucket(ip string) *Bucket {
 	b, ok := ipAdderStore[ip]
 	if ok {
 		if b.tokenAmount <= 0 {
-			logger.Printf("%s bucket size is too low (%d) - bad request\n", b.IpAdder, b.tokenAmount)
+			loggerFW.Printf("%s bucket size is too low (%d) - bad request\n", b.IpAdder, b.tokenAmount)
 			ipAdderStore[ip].httpStatus = http.StatusTooManyRequests
 		} else if b.tokenAmount > 0 {
 			ipAdderStore[ip].httpStatus = http.StatusOK
 			ipAdderStore[ip].tokenAmount -= b.removeRate
 		}
 
-		logger.Printf("ip address in memory (%s) has (%d) tokens in bucket\n", b.IpAdder, b.tokenAmount)
+		loggerFW.Printf("ip address in memory (%s) has (%d) tokens in bucket\n", b.IpAdder, b.tokenAmount)
 		return b
 	}
 
@@ -46,17 +45,16 @@ func GetIpAdderBucket(ip string) *Bucket {
 		httpStatus:  http.StatusOK,
 	}
 
-	// Start to fill the bucket
 	go newBucket.fillBucket()
 
 	ipAdderStore[ip] = newBucket
-	logger.Printf("ip adddress created in memory (%s)\n", newBucket.IpAdder)
+	loggerFW.Printf("ip adddress created in memory (%s)\n", newBucket.IpAdder)
 
 	return newBucket
 }
 
 func (b *Bucket) fillBucket() {
-	logger.Printf("Fill bucket process started for %s\n", b.IpAdder)
+	loggerFW.Printf("Fill bucket process started for %s\n", b.IpAdder)
 
 	ticker := time.NewTicker(time.Second)
 	start := time.Now()
@@ -66,14 +64,14 @@ func (b *Bucket) fillBucket() {
 			select {
 			case <-ticker.C:
 				timeOfFillBucketOperation := time.Since(start).Seconds()
-				logger.Printf("%s running fill bucket for %.2f seconds\n", b.IpAdder, timeOfFillBucketOperation)
+				loggerFW.Printf("%s running fill bucket for %.2f seconds\n", b.IpAdder, timeOfFillBucketOperation)
 
 				if b.tokenAmount < b.capacity {
 					ipAdderStore[b.IpAdder].tokenAmount += b.fillRate
 				}
 
 				if timeOfFillBucketOperation > 60.00 {
-					logger.Printf("removing %s from memory\n", b.IpAdder)
+					loggerFW.Printf("removing %s from memory\n", b.IpAdder)
 					delete(ipAdderStore, b.IpAdder)
 					return
 				}
@@ -85,14 +83,4 @@ func (b *Bucket) fillBucket() {
 // Get the http status code of the current bucket
 func (b *Bucket) GetHTTPStatus() int {
 	return b.httpStatus
-}
-
-type FixedWindow struct {
-	threshold float64   // Limit where if exceded the requests will be discarded
-	counter   float64   // Amount to increase window time per incoming request
-	window    time.Time // Current time of window
-}
-
-func UseFixedWindow() *FixedWindow {
-	return &FixedWindow{}
 }
