@@ -60,10 +60,10 @@ func (r rateLimiter) limited(w http.ResponseWriter, req *http.Request) {
 
 	switch r.name {
 	case TOKEN_BUCKET:
-		bucket := bandwidthbot.InitializeTokenBucket(ip)
+		bucket := bandwidthbot.RunTokenBucket(ip)
 		serverResponseCode = bucket.GetHTTPStatus()
 	case FIXED_WINDOW_COUNTER:
-		fwc := bandwidthbot.InitializeFixedWindow(ip)
+		fwc := bandwidthbot.RunFixedWindow(ip)
 		serverResponseCode = fwc.GetHTTPStatus()
 	}
 

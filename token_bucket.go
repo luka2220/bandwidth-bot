@@ -21,18 +21,18 @@ type Bucket struct {
 	httpStatus  int    // HTTP status of the bucket
 }
 
-func InitializeTokenBucket(ip string) *Bucket {
+func RunTokenBucket(ip string) *Bucket {
 	b, ok := ipAdderStore[ip]
 	if ok {
 		if b.tokenAmount <= 0 {
-			loggerFW.Printf("%s bucket size is too low (%d) - bad request\n", b.IpAdder, b.tokenAmount)
+			loggerTB.Printf("%s bucket size is too low (%d) - bad request\n", b.IpAdder, b.tokenAmount)
 			ipAdderStore[ip].httpStatus = http.StatusTooManyRequests
 		} else if b.tokenAmount > 0 {
 			ipAdderStore[ip].httpStatus = http.StatusOK
 			ipAdderStore[ip].tokenAmount -= b.removeRate
 		}
 
-		loggerFW.Printf("ip address in memory (%s) has (%d) tokens in bucket\n", b.IpAdder, b.tokenAmount)
+		loggerTB.Printf("ip address in memory (%s) has (%d) tokens in bucket\n", b.IpAdder, b.tokenAmount)
 		return b
 	}
 
@@ -48,33 +48,30 @@ func InitializeTokenBucket(ip string) *Bucket {
 	go newBucket.fillBucket()
 
 	ipAdderStore[ip] = newBucket
-	loggerFW.Printf("ip adddress created in memory (%s)\n", newBucket.IpAdder)
+	loggerTB.Printf("ip adddress created in memory (%s)\n", newBucket.IpAdder)
 
 	return newBucket
 }
 
 func (b *Bucket) fillBucket() {
-	loggerFW.Printf("Fill bucket process started for %s\n", b.IpAdder)
+	loggerTB.Printf("Fill bucket process started for %s\n", b.IpAdder)
 
 	ticker := time.NewTicker(time.Second)
 	start := time.Now()
 
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				timeOfFillBucketOperation := time.Since(start).Seconds()
-				loggerFW.Printf("%s running fill bucket for %.2f seconds\n", b.IpAdder, timeOfFillBucketOperation)
+		for range ticker.C {
+			timeOfFillBucketOperation := time.Since(start).Seconds()
+			loggerTB.Printf("%s running fill bucket for %.2f seconds\n", b.IpAdder, timeOfFillBucketOperation)
 
-				if b.tokenAmount < b.capacity {
-					ipAdderStore[b.IpAdder].tokenAmount += b.fillRate
-				}
+			if b.tokenAmount < b.capacity {
+				ipAdderStore[b.IpAdder].tokenAmount += b.fillRate
+			}
 
-				if timeOfFillBucketOperation > 60.00 {
-					loggerFW.Printf("removing %s from memory\n", b.IpAdder)
-					delete(ipAdderStore, b.IpAdder)
-					return
-				}
+			if timeOfFillBucketOperation > 60.00 {
+				loggerTB.Printf("removing %s from memory\n", b.IpAdder)
+				delete(ipAdderStore, b.IpAdder)
+				return
 			}
 		}
 	}()

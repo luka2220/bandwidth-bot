@@ -20,10 +20,11 @@ run:
 
 # Run all of the unit tests
 test:
-	$(info Running all of the application unit tests)
-	@go test ./...
+	@go test ./... -v
+
+test-fwc:
+	@go test fixed_window_test.go -v
 
 # Build the application binary
 build:
-	$(info Building the application binary into bin/)
 	@go build -o bin/ ./cmd/main.go
