@@ -7,21 +7,36 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/luka2220/tools/rate-limiter/pkg/tokenbucket"
+	"github.com/luka2220/bandwidthbot"
 )
 
 var (
 	logger = log.New(os.Stdout, "[SERVER]: ", log.LstdFlags)
 )
 
-func unlimitedRoute(w http.ResponseWriter, req *http.Request) {
+const (
+	TOKEN_BUCKET         = "token-bucket"
+	FIXED_WINDOW_COUNTER = "fixed-window-counter"
+)
+
+type response struct {
+	Message string `json:"message"`
+	Ip      string `json:"ip"`
+}
+
+type rateLimiter struct {
+	name string
+}
+
+func newRateLimiter(name string) *rateLimiter {
+	return &rateLimiter{
+		name,
+	}
+}
+
+func (r rateLimiter) unlimited(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 	logger.Printf("unlimted route requested by %s\n", ip)
-
-	type response struct {
-		Message string `json:"message"`
-		Ip      string `json:"ip"`
-	}
 
 	respSerialized, err := json.Marshal(&response{
 		Message: "Unlimited route requested from the server...",
@@ -38,18 +53,22 @@ func unlimitedRoute(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func limitedRoute(w http.ResponseWriter, req *http.Request) {
+func (r rateLimiter) limited(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 
-	bucket := tokenbucket.GetIpAdderBucket(ip)
-	type response struct {
-		Message string `json:"message"`
-		Ip      string `json:"ip"`
+	var serverResponseCode = 200
+
+	switch r.name {
+	case TOKEN_BUCKET:
+		bucket := bandwidthbot.RunTokenBucket(ip)
+		serverResponseCode = bucket.GetHTTPStatus()
+	case FIXED_WINDOW_COUNTER:
+		serverResponseCode = bandwidthbot.RunFixedWindow(ip)
 	}
 
 	var respUnserialized *response
 
-	switch bucket.GetHTTPStatus() {
+	switch serverResponseCode {
 	case 429:
 		respUnserialized = &response{
 			Message: "The client has sent too many requests in a given amount of time",
@@ -70,7 +89,7 @@ func limitedRoute(w http.ResponseWriter, req *http.Request) {
 
 	logger.Printf("limited route requested by %s\n", ip)
 
-	w.WriteHeader(bucket.GetHTTPStatus())
+	w.WriteHeader(serverResponseCode)
 	_, err = w.Write(respSerialized)
 	if err != nil {
 		panic(fmt.Sprintf("Error writting serialized struct to response writer: %v\n", err))
@@ -78,8 +97,10 @@ func limitedRoute(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	unlim := unlimitedRoute
-	lim := limitedRoute
+	rl := newRateLimiter(FIXED_WINDOW_COUNTER)
+
+	unlim := rl.unlimited
+	lim := rl.limited
 
 	http.HandleFunc("/unlimited", unlim)
 	http.HandleFunc("/limited", lim)
