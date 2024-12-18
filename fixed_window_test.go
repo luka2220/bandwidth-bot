@@ -12,8 +12,7 @@ import (
 func limited(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 
-	fwc := bandwidthbot.RunFixedWindow(ip)
-	serverResponseCode := fwc.GetHTTPStatus()
+	serverResponseCode := bandwidthbot.RunFixedWindow(ip)
 
 	response := struct {
 		Message string `json:"message"`
