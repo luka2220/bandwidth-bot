@@ -9,10 +9,10 @@ import (
 	"github.com/luka2220/bandwidthbot"
 )
 
-func limitedFwc(w http.ResponseWriter, req *http.Request) {
+func limitedTokenBucket(w http.ResponseWriter, req *http.Request) {
 	ip := req.RemoteAddr
 
-	serverResponseCode := bandwidthbot.RunFixedWindow(ip)
+	serverResponseCode := bandwidthbot.RunTokenBucket(ip)
 
 	response := struct {
 		Message string `json:"message"`
@@ -35,13 +35,13 @@ func limitedFwc(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func startTestFwcServer() {
-	lim := limitedFwc
-
-	http.HandleFunc("/limited", lim)
+func startTokenBucketServer() {
+	route := limitedTokenBucket
+	http.HandleFunc("/limited", route)
 	http.ListenAndServe(":8080", nil)
 }
 
-func TestBandwidthBot(t *testing.T) {
-
+func TestTokenBucket(t *testing.T) {
+	startTokenBucketServer()
 }
+
