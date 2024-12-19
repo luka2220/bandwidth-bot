@@ -25,6 +25,9 @@ test:
 test-fwc:
 	@go test fixed_window_test.go -v
 
+test-tb:
+	@go test token_bucket_test.go -v
+
 # Build the application binary
 build:
 	@go build -o bin/ ./cmd/main.go

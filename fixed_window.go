@@ -9,37 +9,39 @@ import (
 )
 
 var (
-	fixedWindowStore      = make(map[string]*FixedWindow)
-	loggerFW              = log.New(os.Stdout, "[SERVER-FWC]: ", log.LstdFlags)
-	fixedWindowStoreMutex sync.Mutex
-	expiryDuration   = 30 * time.Second
+	fixedWindowStore  = make(map[string]*fixedWindow)
+	loggerFW          = log.New(os.Stdout, "[SERVER-FWC]: ", log.LstdFlags)
+	fixedWindowMutex  sync.Mutex
+	fixedWindowExpiry = 60 * time.Second // Maximum amount of time to keep an ip in fixedWindowStore
 )
 
-type FixedWindow struct {
-	ipAddress   string    // Ip address of the current window
-	windowSize  float64   // Time limit of window in seconds
-	requests    int       // Counter for requests
-	maxRequests int       // Maximum allowed requests within the window
+type fixedWindow struct {
+	ipAddress   string  // Ip address of the current window
+	windowSize  float64 // Time limit of window in seconds
+	requests    int     // Counter for requests
+	maxRequests int     // Maximum allowed requests within the window
+
 	startTime   time.Time // Start time of the current window
-	lastRequest time.Time	// Time since the ip last made a request
+	lastRequest time.Time // Time since the ip last made a request
 }
 
 // RunFixedWindow executes the fixed window counter
 // algorithm for each incoming ip and returns the
-// current status code i.e 420 for too many requests
+// current status code i.e 429, 200 ...
 func RunFixedWindow(ip string) int {
-	fixedWindowStoreMutex.Lock()
-	defer fixedWindowStoreMutex.Unlock()
+	fixedWindowMutex.Lock()
+	defer fixedWindowMutex.Unlock()
 
 	removeExpiredEntries()
 
-	window, exists := fixedWindowStore[ip]; if ! exists {
-		fixedWindowStore[ip] = &FixedWindow{
-			ipAddress: ip,
-			windowSize: 60.00,
-			requests: 1,
+	window, exists := fixedWindowStore[ip]
+	if !exists {
+		fixedWindowStore[ip] = &fixedWindow{
+			ipAddress:   ip,
+			windowSize:  60.00,
+			requests:    1,
 			maxRequests: 5,
-			startTime: time.Now(),
+			startTime:   time.Now(),
 			lastRequest: time.Now(),
 		}
 
@@ -68,9 +70,10 @@ func RunFixedWindow(ip string) int {
 func removeExpiredEntries() {
 	now := time.Now()
 	for ip, window := range fixedWindowStore {
-		if now.Sub(window.lastRequest) > expiryDuration {
+		if now.Sub(window.lastRequest) > fixedWindowExpiry {
 			delete(fixedWindowStore, ip)
 			loggerFW.Printf("Expired entry removed for IP: %s\n", ip)
 		}
 	}
 }
+
