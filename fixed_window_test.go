@@ -43,5 +43,5 @@ func startTestFwcServer() {
 }
 
 func TestBandwidthBot(t *testing.T) {
-
+	startTestFwcServer()
 }

@@ -32,7 +32,7 @@ func RunFixedWindow(ip string) int {
 	fixedWindowMutex.Lock()
 	defer fixedWindowMutex.Unlock()
 
-	removeExpiredEntries()
+	removeExpiredWindows()
 
 	window, exists := fixedWindowStore[ip]
 	if !exists {
@@ -67,7 +67,7 @@ func RunFixedWindow(ip string) int {
 	return http.StatusTooManyRequests
 }
 
-func removeExpiredEntries() {
+func removeExpiredWindows() {
 	now := time.Now()
 	for ip, window := range fixedWindowStore {
 		if now.Sub(window.lastRequest) > fixedWindowExpiry {
@@ -76,4 +76,3 @@ func removeExpiredEntries() {
 		}
 	}
 }
-

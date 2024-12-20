@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/luka2220/bandwidthbot"
 )
@@ -41,7 +42,15 @@ func startTokenBucketServer() {
 	http.ListenAndServe(":8080", nil)
 }
 
-func TestTokenBucket(t *testing.T) {
-	startTokenBucketServer()
+func makeRequestTokenBucket() {
+	// http.Get()
 }
 
+func TestTokenBucket(t *testing.T) {
+	go startTokenBucketServer()
+
+	timer1 := time.NewTimer(2 * time.Second)
+	<-timer1.C
+
+	fmt.Println("Executed past the server start...")
+}

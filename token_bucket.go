@@ -33,7 +33,7 @@ func RunTokenBucket(ip string) int {
 	tokenBucketMutex.Lock()
 	defer tokenBucketMutex.Unlock()
 
-	removeExpiredIpTokenBucket()
+	removeExpiredBuckets()
 
 	bucket, exists := tokenBucketStore[ip]
 	if !exists {
@@ -77,7 +77,10 @@ func RunTokenBucket(ip string) int {
 	return http.StatusOK
 }
 
-func removeExpiredIpTokenBucket() {
+// removeExpiredBuckets deletes and cleans up any ip addresses
+// in memory from tokenBucketStore, that have not had a network
+// request in tokenBucketExpiry seconds.
+func removeExpiredBuckets() {
 	now := time.Now()
 	for ip, bucket := range tokenBucketStore {
 		if now.Sub(bucket.lastRequest) > tokenBucketExipry {
@@ -85,4 +88,11 @@ func removeExpiredIpTokenBucket() {
 			loggerTB.Printf("%s time expired, removing from memory\n", bucket.ipAddress)
 		}
 	}
+}
+
+// getTokenBucketStore returns the current cache state of
+// the ip addresses associated with token buckets from
+// tokenBucketStore for testing
+func getTokenBucketStore() map[string]*tokenBucket {
+	return tokenBucketStore
 }
